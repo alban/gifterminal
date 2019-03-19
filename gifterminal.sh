@@ -1,28 +1,15 @@
 #!/bin/bash
 
-read -r -d '' INPUT << "EOM"
-@@@@@ TERMINAL=1 POSITION=100,10 SKIP=1 SLEEP_AFTER=0
-[alban@neptune gif]$ echo foo@@@@@ PROMPT=1
-foo
-[alban@neptune gif]$ @@@@@ TERMINAL=2 POSITION=820,10 SKIP=1
-./run-magic.pl@@@@@ PROMPT=1 TERMINAL=1 SLEEP_AFTER=50 PROMPT_CHAR=''
-line 1   00000000001111111111222222222233333333334444444444555555555566666666667777777777888888888899999999990000000000
-[alban@neptune gif]$ ./mfdkjsljflkdsjflkdsjfkldsjfkldsjgkfdjgsjglkfdsjglkfdj@@@@@ PROMPT=1
-abcdefghijklmnopqrst
-for i in $(seq 6 9) ; do echo "$i     $i     " ; done@@@@@ PROMPT=1 TERMINAL=2 DEFAULT_TERMINAL=2 POSITION=820,10 DEFAULT_POSITION=820,10 SLEEP_AFTER=3000
-6     6     
-7     7     
-8     8     
-9     9     
-[alban@neptune gif]$ 
-[alban@neptune gif]$ ./mfdkjsljflkdsjflkdsjfkldsjfkldsjgkfdjgsjglkfdsjglkfdj@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 POSITION=10,10 DEFAULT_POSITION=10,10 PROMPT=1
-abcdefghijklmnopqrst
-[alban@neptune gif]$ ./m@@@@@ PROMPT=1
-foo
-[alban@neptune gif]$ ./m@@@@@ PROMPT=1
-bar
-[alban@neptune gif]$ 
-EOM
+FILESRC=$1
+FILEDST=$2
+if [ ! -r "$FILESRC" ] ; then
+  echo "cannot read file"
+  exit 1
+fi
+if [ -z "$FILEDST" ] ; then
+  echo "must specify output file"
+  exit 1
+fi
 
 rm -f frame-*.gif terminal-*.tmp position-*.tmp sleep-*.tmp
 
@@ -39,7 +26,7 @@ write_frame () {
   S="$3"
 
   echo -n "${C}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
-  (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -23 ; echo '    "' ) > terminal-draw-$TERMINAL.tmp
+  (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -23 ; echo '█    "' ) > terminal-draw-$TERMINAL.tmp
   convert -size 800x435 'xc:#2E3436' -font "FreeMono" -pointsize 17 -fill '#D3D7CF' -draw @terminal-draw-$TERMINAL.tmp frame-${FRAME}.gif
 
   echo $P > position-$FRAME.tmp
@@ -52,7 +39,7 @@ write_frame () {
 DEFAULT_PROMPT=0
 DEFAULT_PROMPT_CHAR='$'
 DEFAULT_TERMINAL=1
-DEFAULT_SLEEP_CHAR=4
+DEFAULT_SLEEP_CHAR=8
 DEFAULT_SLEEP_BEFORE=4
 DEFAULT_SLEEP_AFTER=4
 DEFAULT_POSITION=10,10
@@ -85,6 +72,9 @@ while IFS= read -r LINE ; do
     fi
     while IFS= read -r -N 1 CHAR ; do
       if [ "$PROMPT_FOUND" = 1 ] ; then
+        if [ "$CHAR" = $'\n' -a "$SKIP" = 1 ] ; then
+          continue
+        fi
         write_frame "${CHAR}" "$POSITION" "$SLEEP_CHAR"
       else
         CHAR_ACC="${CHAR_ACC}${CHAR}"
@@ -95,6 +85,7 @@ while IFS= read -r LINE ; do
       fi
     done <<<"$LINE"
     if [ "$PROMPT_FOUND" = 0 ] ; then
+      echo "Prompt not found"
       echo "Line was: $LINE"
       echo "Chars were: $CHAR_ACC"
     fi
@@ -108,7 +99,7 @@ while IFS= read -r LINE ; do
   if [ "$PROMPT" = 0 -o "$SKIP" = 0 ] ; then
     write_frame "" "$POSITION" "$SLEEP_AFTER"
   fi
-done <<<"$INPUT"
+done < $FILESRC
 
 echo
 echo "$FRAME frames"
@@ -120,6 +111,6 @@ gifsicle --colors 256 -m \
 		$(for i in `seq -w 000 $FRAME` ; do
 			echo "--position $(cat position-$i.tmp) -d$(cat sleep-$i.tmp) frame-$i.gif"
 		done) \
-		--optimize > output.gif
+		--optimize > $FILEDST
 
 rm -f frame-*.gif terminal-*.tmp position-*.tmp sleep-*.tmp
