@@ -42,8 +42,9 @@ DEFAULT_TERMINAL=1
 DEFAULT_SLEEP_CHAR=8
 DEFAULT_SLEEP_BEFORE=4
 DEFAULT_SLEEP_AFTER=4
-DEFAULT_POSITION=10,10
 DEFAULT_SKIP=0
+
+declare -A POSITION
 
 echo "Computing frames..."
 FRAME=000
@@ -54,7 +55,6 @@ while IFS= read -r LINE ; do
   SLEEP_CHAR=$DEFAULT_SLEEP_CHAR
   SLEEP_BEFORE=$DEFAULT_SLEEP_BEFORE
   SLEEP_AFTER=$DEFAULT_SLEEP_AFTER
-  POSITION=$DEFAULT_POSITION
   SKIP=$DEFAULT_SKIP
 
   if [[ "$LINE" =~ @@@@@ ]] ; then
@@ -75,12 +75,12 @@ while IFS= read -r LINE ; do
         if [ "$CHAR" = $'\n' -a "$SKIP" = 1 ] ; then
           continue
         fi
-        write_frame "${CHAR}" "$POSITION" "$SLEEP_CHAR"
+        write_frame "${CHAR}" "${POSITION[$TERMINAL]}" "$SLEEP_CHAR"
       else
         CHAR_ACC="${CHAR_ACC}${CHAR}"
         if [ "$CHAR" = "$" ] ; then
           PROMPT_FOUND=1
-          write_frame "${CHAR_ACC}" "$POSITION" "$SLEEP_CHAR"
+          write_frame "${CHAR_ACC}" "${POSITION[$TERMINAL]}" "$SLEEP_CHAR"
         fi
       fi
     done <<<"$LINE"
@@ -97,7 +97,7 @@ while IFS= read -r LINE ; do
   fi
 
   if [ "$PROMPT" = 0 -o "$SKIP" = 0 ] ; then
-    write_frame "" "$POSITION" "$SLEEP_AFTER"
+    write_frame "" "${POSITION[$TERMINAL]}" "$SLEEP_AFTER"
   fi
 done < $FILESRC
 
