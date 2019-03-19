@@ -37,11 +37,15 @@ write_frame () {
 
 
 DEFAULT_PROMPT=0
-DEFAULT_PROMPT_CHAR='$'
+DEFAULT_PROMPT_CHAR='$ '
+DEFAULT_PROMPT_REGEXP='\]\$\ '
 DEFAULT_TERMINAL=1
-DEFAULT_SLEEP_CHAR=8
-DEFAULT_SLEEP_BEFORE=4
-DEFAULT_SLEEP_AFTER=4
+DEFAULT_SLEEP_PROMPT=100      # After printing the prompt
+DEFAULT_SLEEP_PROMPT_EOL=100  # After printing the prompt
+DEFAULT_SLEEP_PROMPT_NL=10    # After printing the new line after the command
+DEFAULT_SLEEP_CHAR=8          # After printing each char of the command
+DEFAULT_SLEEP_EOL=4           # End of line, before the new line character
+DEFAULT_SLEEP_NL=4            # After the new line character
 DEFAULT_SKIP=0
 
 declare -A POSITION
@@ -49,13 +53,21 @@ declare -A POSITION
 echo "Computing frames..."
 FRAME=000
 while IFS= read -r LINE ; do
-  PROMPT=$DEFAULT_PROMPT
-  PROMPT_CHAR=$DEFAULT_PROMPT_CHAR
-  TERMINAL=$DEFAULT_TERMINAL
+  PROMPT="$DEFAULT_PROMPT"
+  PROMPT_CHAR="$DEFAULT_PROMPT_CHAR"
+  PROMPT_REGEXP="$DEFAULT_PROMPT_REGEXP"
+  TERMINAL="$DEFAULT_TERMINAL"
+  SLEEP_PROMPT=$DEFAULT_SLEEP_PROMPT
+  SLEEP_PROMPT_EOL=$DEFAULT_SLEEP_PROMPT_EOL
+  SLEEP_PROMPT_NL=$DEFAULT_SLEEP_PROMPT_NL
   SLEEP_CHAR=$DEFAULT_SLEEP_CHAR
-  SLEEP_BEFORE=$DEFAULT_SLEEP_BEFORE
-  SLEEP_AFTER=$DEFAULT_SLEEP_AFTER
+  SLEEP_EOL=$DEFAULT_SLEEP_EOL
+  SLEEP_NL=$DEFAULT_SLEEP_NL
   SKIP=$DEFAULT_SKIP
+
+  if [[ "$LINE" =~ $PROMPT_REGEXP ]] ; then
+    PROMPT=1
+  fi
 
   if [[ "$LINE" =~ @@@@@ ]] ; then
     PARAMS=$(gawk --field-separator='@@@@@' '{print $2}' <<<"$LINE")
@@ -75,12 +87,17 @@ while IFS= read -r LINE ; do
         if [ "$CHAR" = $'\n' -a "$SKIP" = 1 ] ; then
           continue
         fi
-        write_frame "${CHAR}" "${POSITION[$TERMINAL]}" "$SLEEP_CHAR"
+        if [ "$CHAR" = $'\n' ] ; then
+          write_frame "" "${POSITION[$TERMINAL]}" "$SLEEP_PROMPT_EOL"
+          write_frame "${CHAR}" "${POSITION[$TERMINAL]}" "$SLEEP_PROMPT_NL"
+        else
+          write_frame "${CHAR}" "${POSITION[$TERMINAL]}" "$SLEEP_CHAR"
+        fi
       else
         CHAR_ACC="${CHAR_ACC}${CHAR}"
-        if [ "$CHAR" = "$" ] ; then
+        if [ "${CHAR_ACC: -${#PROMPT_CHAR}}" = "$PROMPT_CHAR" ] ; then
           PROMPT_FOUND=1
-          write_frame "${CHAR_ACC}" "${POSITION[$TERMINAL]}" "$SLEEP_CHAR"
+          write_frame "${CHAR_ACC}" "${POSITION[$TERMINAL]}" "$SLEEP_PROMPT"
         fi
       fi
     done <<<"$LINE"
@@ -90,14 +107,11 @@ while IFS= read -r LINE ; do
       echo "Chars were: $CHAR_ACC"
     fi
   else
-    echo -n "${LINE}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
+    write_frame "$LINE" "${POSITION[$TERMINAL]}" "$SLEEP_EOL"
     if [ "$SKIP" = 0 ] ; then
-      echo >> terminal-$TERMINAL.tmp
+      NL=$'\n'
+      write_frame "$NL" "${POSITION[$TERMINAL]}" "$SLEEP_NL"
     fi
-  fi
-
-  if [ "$PROMPT" = 0 -o "$SKIP" = 0 ] ; then
-    write_frame "" "${POSITION[$TERMINAL]}" "$SLEEP_AFTER"
   fi
 done < $FILESRC
 
