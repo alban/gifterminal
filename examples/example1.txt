@@ -1,0 +1,30 @@
+[alban@neptune captureflag1]$ @@@@@ TERMINAL=1 POSITION[1]=10,10  SKIP=1 SLEEP_PROMPT=0
+[alban@neptune captureflag2]$ @@@@@ TERMINAL=2 POSITION[2]=820,10 SKIP=1 SLEEP_PROMPT=0
+[alban@neptune captureflag3]$ @@@@@ TERMINAL=3 POSITION[3]=10,500 SKIP=1 SLEEP_PROMPT=0
+kubectl get pod@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' SLEEP_AFTER=100
+NAME       READY   STATUS      RESTARTS   AGE
+busybox    0/1     Completed   0          4h11m@@@@@ SLEEP_AFTER=200
+busybox1   0/1     Completed   0          4h11m
+busybox2   0/1     Completed   0          4h10m
+[alban@neptune gifterminal]$ abcde abcde
+backgroundkinvolk.gif  LICENSE     README.md
+gifterminal.sh         output.gif  record.txt
+[alban@neptune gifterminal]$ abcde abcde
+backgroundkinvolk.gif  LICENSE     README.md
+gifterminal.sh         output.gif  record.txt
+[alban@neptune gifterminal]$ abcde abcde
+backgroundkinvolk.gif  LICENSE     README.md
+gifterminal.sh         output.gif  record.txt
+[alban@neptune captureflag1]$ 
+kubectl --kubeconfig=admin.kubeconfig get nodes@@@@@ TERMINAL=2 DEFAULT_TERMINAL=2 PROMPT=1 PROMPT_CHAR='' SLEEP_AFTER=100
+NAME             STATUS   ROLES               AGE   VERSION
+ip-10-0-0-95     Ready    controller,master   9h    v1.13.3
+ip-10-0-11-126   Ready    node                9h    v1.13.3
+ip-10-0-28-72    Ready    node                9h    v1.13.3
+[alban@neptune captureflag2]$ 
+./gifterminal.sh record.txt output.gif @@@@@ TERMINAL=3 DEFAULT_TERMINAL=3 PROMPT=1 PROMPT_CHAR='' SLEEP_AFTER=100
+Computing frames...
+.......................
+118 frames
+[alban@neptune gifterminal]$ @@@@@ SLEEP_AFTER=1000
+[alban@neptune gifterminal]$ 

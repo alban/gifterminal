@@ -1,0 +1,17 @@
+[alban@neptune bpffuture]$ @@@@@ TERMINAL=1 POSITION[1]=10,10  SKIP=1 SLEEP_PROMPT=0
+[alban@neptune bpffuture]$ @@@@@ TERMINAL=2 POSITION[2]=820,10 SKIP=1 SLEEP_PROMPT=0
+[alban@neptune bpffuture]$ @@@@@ TERMINAL=3 POSITION[3]=10,500 SKIP=1 SLEEP_PROMPT=0
+kubectl get pod@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' SLEEP_AFTER=100
+NAME       READY   STATUS      RESTARTS   AGE
+busybox    0/1     Completed   0          4h11m
+[alban@neptune bpffuture]$ @@@@@ SKIP=1
+kubectl apply -f myapp.yaml@@@@@ TERMINAL=2 DEFAULT_TERMINAL=2 PROMPT=1 PROMPT_CHAR='' SLEEP_NL=100
+[alban@neptune bpffuture]$ @@@@@ SLEEP_PROMPT_EOL=100 SKIP=1
+kubectl kinvolk-trace --label app=myapp @@@@@ TERMINAL=3 DEFAULT_TERMINAL=3 PROMPT=1 PROMPT_CHAR=''
+Error: time not specified
+[alban@neptune bpffuture]$ kubectl kinvolk-trace --label app=myapp --time=yesterday
+Mhh, let me see...@@@@@ SLEEP_EOL=200 SKIP=1
+ I forgot. Please try tomorrow.
+[alban@neptune bpffuture]$ kubectl kinvolk-trace --label app=myapp --time=tomorrow
+Tomorrow will not be April Fools' Day anymore.
+[alban@neptune bpffuture]$ @@@@@ SKIP=1
