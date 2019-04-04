@@ -1,0 +1,80 @@
+$ # BPF demo - Flatcar Linux Edge@@@@@ TERMINAL=1 POSITION[1]=10,10   SKIP=1 SLEEP_PROMPT=0 DEFAULT_PROMPT_REGEXP='\$\ '
+[alban@neptune edgedemo]$ @@@@@ TERMINAL=2 POSITION[2]=820,10  SKIP=1 SLEEP_PROMPT=0
+[alban@neptune edgedemo]$ @@@@@ TERMINAL=3 POSITION[3]=10,500  SKIP=1 SLEEP_PROMPT=0
+[alban@neptune edgedemo]$ @@@@@ TERMINAL=4 POSITION[4]=820,500 SKIP=1 SLEEP_PROMPT=0
+@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' DEFAULT_SLEEP_CHAR=2
+$ # I have a Kubernetes installation based on Typhoon.
+$ # We will use the execsnoop tool from BCC.
+$ # https://github.com/iovisor/bcc/blob/master/tools/execsnoop_example.txt
+$ # execsnoop has been adapted to filter events based on Kubernetes labels.
+$ # Using the OCI pre-start hook to read Kubernetes labels and setup BPF maps.
+$ # Internally, it uses a BPF helper function to filter on cgroups.
+$ # This requires cgroup-v2, which is pre-configured on Flatcar Linux Edge.
+$ # 
+$ # We will deploy our application in the demo Kubernetes namespace.
+kubectl create ns demo@@@@@ TERMINAL=2 DEFAULT_TERMINAL=2 PROMPT=1 PROMPT_CHAR='' SLEEP_CHAR=8 DEFAULT_SLEEP_CHAR=8
+namespace/demo created
+[alban@neptune edgedemo]$ @@@@@ SKIP=1
+$ # Let's look at our example app. It will deploy two containers on each node.@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR=''
+ls -l ds-myapp.yaml@@@@@ TERMINAL=2 DEFAULT_TERMINAL=2 PROMPT=1 PROMPT_CHAR=''
+-rw-rw-r-- 1 alban alban 997 Apr  4 17:12 ds-myapp.yaml
+[alban@neptune bcck8s]$ cat ds-myapp.yaml | grep -E 'kind|matchLabels|^      myapp:|command|^  name'
+kind: DaemonSet
+  name: myapp1-pod
+    matchLabels:
+      myapp: app-one
+        command: [ "sh", "-c", "while /bin/true ; do date ; cat /proc/version ; sleep 1 ; done" ]
+kind: DaemonSet
+  name: myapp2-pod
+    matchLabels:
+      myapp: app-two
+        command: [ "sh", "-c", "while /bin/true ; do date ; /bin/echo sleep-10 ; /bin/sleep 10 ; done" ]
+[alban@neptune edgedemo]$ @@@@@ SLEEP_PROMPT=200 SKIP=1
+@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' SKIP=1
+$ #
+$ # On each node, we have a pod with label myapp=app-one ...
+$ # ... and another pod with label myapp=app-two.
+$ # Let's execute execsnoop on two terminals for each of the two apps.
+$ # We use a different "--label" filter.
+kubectl exec -ti bcck8s-shell-8m7fh -- /execsnoop-edge --label myapp=app-one@@@@@ TERMINAL=3 DEFAULT_TERMINAL=3 PROMPT=1 PROMPT_CHAR='' SLEEP_NL=100
+PCOMM            PID    PPID   RET ARGS@@@@@SLEEP_NL=100
+kubectl exec -ti bcck8s-shell-8m7fh -- /execsnoop-edge --label myapp=app-two@@@@@ TERMINAL=4 DEFAULT_TERMINAL=4 PROMPT=1 PROMPT_CHAR='' SLEEP_NL=100
+PCOMM            PID    PPID   RET ARGS@@@@@SLEEP_NL=100
+@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' SKIP=1
+$ #
+$ # Let's deploy our app and see what's being executed.
+kubectl apply -f ds-myapp.yaml -n demo@@@@@ TERMINAL=2 DEFAULT_TERMINAL=2 PROMPT=1 PROMPT_CHAR=''
+daemonset.apps/myapp1-pod created
+daemonset.apps/myapp2-pod created
+[alban@neptune edgedemo]$ kubectl get pod -n demo
+NAME               READY   STATUS              RESTARTS   AGE
+myapp1-pod-92ddt   0/1     ContainerCreating   0          1s
+myapp1-pod-qx4zz   0/1     ContainerCreating   0          1s
+myapp2-pod-qd8mq   0/1     ContainerCreating   0          1s
+myapp2-pod-zwqzn   0/1     ContainerCreating   0          1s
+[alban@neptune edgedemo]$ @@@@@ SLEEP_PROMPT=100 SKIP=1
+pause            20970  20933    0 /pause@@@@@ TERMINAL=3 DEFAULT_TERMINAL=3 SLEEP_NL=100
+pause            20976  20947    0 /pause@@@@@ TERMINAL=4 DEFAULT_TERMINAL=4 SLEEP_NL=100
+sh               21568  21550    0 /usr/bin/sh -c while /bin/true ; do date ; cat /proc/version ; sleep 1 ; done@@@@@ TERMINAL=3 DEFAULT_TERMINAL=3
+true             21712  21568    0 /bin/true
+date             21713  21568    0 /usr/bin/date
+cat              21714  21568    0 /usr/bin/cat /proc/version
+sleep            21715  21568    0 /usr/bin/sleep 1@@@@@ SLEEP_NL=100
+sh               21393  21373    0 /usr/bin/sh -c while /bin/true ; do date ; /bin/echo sleep-10 ; /bin/sleep 10 ; done@@@@@ TERMINAL=4 DEFAULT_TERMINAL=4
+true             21539  21393    0 /bin/true
+date             21541  21393    0 /usr/bin/date
+echo             21543  21393    0 /bin/echo sleep-10
+sleep            21544  21393    0 /bin/sleep 10@@@@@ SLEEP_NL=100
+true             21724  21568    0 /bin/true@@@@@ TERMINAL=3 DEFAULT_TERMINAL=3
+date             21725  21568    0 /usr/bin/date
+cat              21726  21568    0 /usr/bin/cat /proc/version
+sleep            21727  21568    0 /usr/bin/sleep 1@@@@@ SLEEP_NL=100
+^C
+[alban@neptune edgedemo]$ @@@@@ SKIP=1
+^C@@@@@ TERMINAL=4 DEFAULT_TERMINAL=4
+[alban@neptune edgedemo]$ @@@@@ SKIP=1
+@@@@@ TERMINAL=1 DEFAULT_TERMINAL=1 PROMPT=1 PROMPT_CHAR='' SKIP=1
+$ # Filtering events on Kubernetes labels works!
+$ # We can use this to debug the early life of a pod.
+$ # Other BCC tools can be adapted for Kubernetes in the same way.
+$ # :-)@@@@@ SLEEP_PROMPT=1000 SLEEP_PROMPT_EOL=1000

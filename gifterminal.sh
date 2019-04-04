@@ -14,7 +14,7 @@ fi
 rm -f frame-*.gif terminal-*.tmp position-*.tmp sleep-*.tmp
 
 inc_frames () {
-  FRAME=$(printf '%03d' "$((10#${FRAME}+1))")
+  FRAME=$(printf '%05d' "$((10#${FRAME}+1))")
   if [ $((10#${FRAME#0} % 5)) = "0" ] ; then
     echo -n '.'
   fi
@@ -27,10 +27,15 @@ write_frame () {
 
   echo -n "${C}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
   (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -23 ; echo '█    "' ) > terminal-draw-$TERMINAL.tmp
-  convert -size 800x435 'xc:#2E3436' -font "FreeMono" -pointsize 17 -fill '#D3D7CF' -draw @terminal-draw-$TERMINAL.tmp frame-${FRAME}.gif
+  cp terminal-draw-$TERMINAL.tmp terminal-draw-$TERMINAL-$FRAME.tmp
+  convert -size 800x435 'xc:#2E3436' -font "FreeMono" -pointsize 17 -fill '#D3D7CF' -draw @terminal-draw-$TERMINAL-$FRAME.tmp frame-${FRAME}.gif &
 
   echo $P > position-$FRAME.tmp
   echo $S > sleep-$FRAME.tmp
+
+  if [ $((10#${FRAME#0} % 32)) = "0" ] ; then
+    wait
+  fi
 
   inc_frames
 }
@@ -51,7 +56,7 @@ DEFAULT_SKIP=0
 declare -A POSITION
 
 echo "Computing frames..."
-FRAME=000
+FRAME=00000
 while IFS= read -r LINE ; do
   PROMPT="$DEFAULT_PROMPT"
   PROMPT_CHAR="$DEFAULT_PROMPT_CHAR"
@@ -84,10 +89,10 @@ while IFS= read -r LINE ; do
     fi
     while IFS= read -r -N 1 CHAR ; do
       if [ "$PROMPT_FOUND" = 1 ] ; then
-        if [ "$CHAR" = $'\n' -a "$SKIP" = 1 ] ; then
+        if [ "x$CHAR" = "x"$'\n' -a "$SKIP" = 1 ] ; then
           continue
         fi
-        if [ "$CHAR" = $'\n' ] ; then
+        if [ "x$CHAR" = "x"$'\n' ] ; then
           write_frame "" "${POSITION[$TERMINAL]}" "$SLEEP_PROMPT_EOL"
           write_frame "${CHAR}" "${POSITION[$TERMINAL]}" "$SLEEP_PROMPT_NL"
         else
@@ -115,14 +120,16 @@ while IFS= read -r LINE ; do
   fi
 done < $FILESRC
 
+wait
+
 echo
 echo "$FRAME frames"
-FRAME=$(printf '%03d' "$((10#${FRAME#0}-1))")
+FRAME=$(printf '%05d' "$((10#${FRAME#0}-1))")
 
 gifsicle --colors 256 -m \
 		--loopcount=forever \
 		-d0 backgroundkinvolk.gif \
-		$(for i in `seq -w 000 $FRAME` ; do
+		$(for i in `seq -w 00000 $FRAME` ; do
 			echo "--position $(cat position-$i.tmp) -d$(cat sleep-$i.tmp) frame-$i.gif"
 		done) \
 		--optimize > $FILEDST

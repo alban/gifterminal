@@ -14,4 +14,4 @@ Mhh, let me see...@@@@@ SLEEP_EOL=200 SKIP=1
  I forgot. Please try tomorrow.
 [alban@neptune bpffuture]$ kubectl kinvolk-trace --label app=myapp --time=tomorrow
 Tomorrow will not be April Fools' Day anymore.
-[alban@neptune bpffuture]$ @@@@@ SKIP=1
+[alban@neptune bpffuture]$ @@@@@ SKIP=1 SLEEP_PROMPT_EOL=1000

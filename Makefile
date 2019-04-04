@@ -1,3 +1,3 @@
 all:
-	./gifterminal.sh ./examples/demo1.txt ./examples/demo1.gif
+	./gifterminal.sh ./examples/bcck8s.txt ./examples/bcck8s.gif
 
