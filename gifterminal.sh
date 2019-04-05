@@ -128,7 +128,7 @@ FRAME=$(printf '%05d' "$((10#${FRAME#0}-1))")
 
 gifsicle --colors 256 -m \
 		--loopcount=forever \
-		-d0 backgroundkinvolk.gif \
+		-d0 Hero-image.gif \
 		$(for i in `seq -w 00000 $FRAME` ; do
 			echo "--position $(cat position-$i.tmp) -d$(cat sleep-$i.tmp) frame-$i.gif"
 		done) \
