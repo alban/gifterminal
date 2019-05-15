@@ -28,7 +28,7 @@ write_frame () {
   echo -n "${C}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
   (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -23 ; echo '█    "' ) > terminal-draw-$TERMINAL.tmp
   cp terminal-draw-$TERMINAL.tmp terminal-draw-$TERMINAL-$FRAME.tmp
-  convert -size 800x435 'xc:#2E3436' -font "FreeMono" -pointsize 17 -fill '#D3D7CF' -draw @terminal-draw-$TERMINAL-$FRAME.tmp frame-${FRAME}.gif &
+  convert -size 800x435 'xc:#1E2426' -font "FreeMono" -pointsize 17 -fill '#E3E7DF' -draw @terminal-draw-$TERMINAL-$FRAME.tmp frame-${FRAME}.gif &
 
   echo $P > position-$FRAME.tmp
   echo $S > sleep-$FRAME.tmp
