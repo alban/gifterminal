@@ -2,6 +2,8 @@
 
 FILESRC=$1
 FILEDST=$2
+BACKGROUND="${BACKGROUND-backgroundkinvolk-white.gif}"
+
 if [ ! -r "$FILESRC" ] ; then
   echo "cannot read file"
   exit 1
@@ -128,7 +130,7 @@ FRAME=$(printf '%05d' "$((10#${FRAME#0}-1))")
 
 gifsicle --colors 256 -m \
 		--loopcount=forever \
-		-d0 Hero-image.gif \
+		-d0 "$BACKGROUND" \
 		$(for i in `seq -w 00000 $FRAME` ; do
 			echo "--position $(cat position-$i.tmp) -d$(cat sleep-$i.tmp) frame-$i.gif"
 		done) \
