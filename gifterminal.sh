@@ -1,8 +1,13 @@
 #!/bin/bash
 
-FILESRC=$1
-FILEDST=$2
+FILESRC=$(readlink -f "$1")
+FILEDST=$(readlink -f "$2")
 BACKGROUND="${BACKGROUND-backgroundkinvolk-white.gif}"
+
+if [ ! -r "$BACKGROUND" ] ; then
+  BACKGROUND="`dirname $0`/$BACKGROUND"
+fi
+BACKGROUND=$(readlink -f "$BACKGROUND")
 
 # 23 or 11
 TERM_HEIGHT="${TERM_HEIGHT-23}"
@@ -20,6 +25,7 @@ if [ -z "$FILEDST" ] ; then
   exit 1
 fi
 
+cd /tmp
 rm -f frame-*.gif terminal-*.tmp position-*.tmp sleep-*.tmp
 
 declare -A POSITION_ARR
@@ -48,7 +54,7 @@ write_frame () {
   cp terminal-draw-$TERMINAL.tmp terminal-draw-$TERMINAL-$FRAME.tmp
   convert -size "${TERMINAL_SIZE_PIXEL[$TERMINAL]-$TERM_SIZE_PIXEL}" \
     "xc:#${TERMINAL_COLOR_BACKGROUND[$TERMINAL]-$DEFAULT_TERMINAL_COLOR_BACKGROUND}" \
-    -font "FreeMono" \
+    -font "$FONT" \
     -pointsize 17 \
     -fill "#${TERMINAL_COLOR_FONT[$TERMINAL]-$DEFAULT_TERMINAL_COLOR_FONT}" \
     -draw @terminal-draw-$TERMINAL-$FRAME.tmp \
@@ -77,6 +83,7 @@ DEFAULT_SLEEP_EOL=4           # End of line, before the new line character
 DEFAULT_SLEEP_NL=4            # After the new line character
 DEFAULT_SKIP=0
 DEFAULT_RESET_TERMINAL=""
+DEFAULT_FONT="FreeMono"
 
 # arrays for each terminal
 declare -A POSITION
@@ -100,6 +107,7 @@ while IFS= read -r LINE ; do
   SLEEP_EOL=$DEFAULT_SLEEP_EOL
   SLEEP_NL=$DEFAULT_SLEEP_NL
   SKIP=$DEFAULT_SKIP
+  FONT="$DEFAULT_FONT"
   RESET_TERMINAL="$DEFAULT_RESET_TERMINAL"
 
   if [[ "$LINE" =~ $PROMPT_REGEXP ]] ; then
