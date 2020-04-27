@@ -1,8 +1,20 @@
 #!/bin/bash
 
-FILESRC=$1
-FILEDST=$2
+FILESRC=$(readlink -f "$1")
+FILEDST=$(readlink -f "$2")
 BACKGROUND="${BACKGROUND-backgroundkinvolk-white.gif}"
+
+if [ ! -r "$BACKGROUND" ] ; then
+  BACKGROUND="`dirname $0`/$BACKGROUND"
+fi
+BACKGROUND=$(readlink -f "$BACKGROUND")
+
+# 23 or 11
+TERM_HEIGHT="${TERM_HEIGHT-23}"
+# 800x435 or 800x216
+TERM_SIZE_PIXEL="${TERM_SIZE_PIXEL-800x435}"
+DEFAULT_TERMINAL_COLOR_BACKGROUND="${DEFAULT_TERMINAL_COLOR_BACKGROUND-1E2426}"
+DEFAULT_TERMINAL_COLOR_FONT="${DEFAULT_TERMINAL_COLOR_FONT-E3E7DF}"
 
 if [ ! -r "$FILESRC" ] ; then
   echo "cannot read file"
@@ -13,7 +25,11 @@ if [ -z "$FILEDST" ] ; then
   exit 1
 fi
 
+cd /tmp
 rm -f frame-*.gif terminal-*.tmp position-*.tmp sleep-*.tmp
+
+declare -A POSITION_ARR
+declare -A SLEEP_ARR
 
 inc_frames () {
   FRAME=$(printf '%05d' "$((10#${FRAME}+1))")
@@ -23,17 +39,29 @@ inc_frames () {
 }
 
 write_frame () {
-  C="$1"
-  P="$2"
-  S="$3"
+  FRAME_CHARACTERS="$1"
+  FRAME_POSITION="$2"
+  FRAME_SLEEP="$3"
 
-  echo -n "${C}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
-  (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -23 ; echo '█    "' ) > terminal-draw-$TERMINAL.tmp
+  echo -n "${FRAME_CHARACTERS}" | sed 's/\\/\\\\/g ; s/"/\\"/g' >> terminal-$TERMINAL.tmp
+  (echo 'text 0,0 "' ; fold --characters < terminal-$TERMINAL.tmp | tail -${TERMINAL_HEIGHT[$TERMINAL]-$TERM_HEIGHT} ; \
+      if [[ "${TERMINAL_HIDE_CURSOR[$TERMINAL]}" = "1" ]] ; then
+        echo '    "'
+      else
+        echo '█    "'
+      fi
+  ) > terminal-draw-$TERMINAL.tmp
   cp terminal-draw-$TERMINAL.tmp terminal-draw-$TERMINAL-$FRAME.tmp
-  convert -size 800x435 'xc:#1E2426' -font "FreeMono" -pointsize 17 -fill '#E3E7DF' -draw @terminal-draw-$TERMINAL-$FRAME.tmp frame-${FRAME}.gif &
+  convert -size "${TERMINAL_SIZE_PIXEL[$TERMINAL]-$TERM_SIZE_PIXEL}" \
+    "xc:#${TERMINAL_COLOR_BACKGROUND[$TERMINAL]-$DEFAULT_TERMINAL_COLOR_BACKGROUND}" \
+    -font "$FONT" \
+    -pointsize 17 \
+    -fill "#${TERMINAL_COLOR_FONT[$TERMINAL]-$DEFAULT_TERMINAL_COLOR_FONT}" \
+    -draw @terminal-draw-$TERMINAL-$FRAME.tmp \
+    frame-${FRAME}.gif &
 
-  echo $P > position-$FRAME.tmp
-  echo $S > sleep-$FRAME.tmp
+  POSITION_ARR[$FRAME]="$FRAME_POSITION"
+  SLEEP_ARR[$FRAME]="$FRAME_SLEEP"
 
   if [ $((10#${FRAME#0} % 32)) = "0" ] ; then
     wait
@@ -54,8 +82,16 @@ DEFAULT_SLEEP_CHAR=8          # After printing each char of the command
 DEFAULT_SLEEP_EOL=4           # End of line, before the new line character
 DEFAULT_SLEEP_NL=4            # After the new line character
 DEFAULT_SKIP=0
+DEFAULT_RESET_TERMINAL=""
+DEFAULT_FONT="FreeMono"
 
+# arrays for each terminal
 declare -A POSITION
+declare -A TERMINAL_SIZE_PIXEL
+declare -A TERMINAL_HEIGHT
+declare -A TERMINAL_COLOR_FONT
+declare -A TERMINAL_COLOR_BACKGROUND
+declare -A TERMINAL_HIDE_CURSOR
 
 echo "Computing frames..."
 FRAME=00000
@@ -71,6 +107,8 @@ while IFS= read -r LINE ; do
   SLEEP_EOL=$DEFAULT_SLEEP_EOL
   SLEEP_NL=$DEFAULT_SLEEP_NL
   SKIP=$DEFAULT_SKIP
+  FONT="$DEFAULT_FONT"
+  RESET_TERMINAL="$DEFAULT_RESET_TERMINAL"
 
   if [[ "$LINE" =~ $PROMPT_REGEXP ]] ; then
     PROMPT=1
@@ -80,6 +118,9 @@ while IFS= read -r LINE ; do
     PARAMS=$(gawk --field-separator='@@@@@' '{print $2}' <<<"$LINE")
     LINE=$(gawk --field-separator='@@@@@' '{print $1}' <<<"$LINE")
     eval $PARAMS
+  fi
+  if [[ "$RESET_TERMINAL" = "$TERMINAL" ]] ; then
+    rm -f terminal-$TERMINAL.tmp
   fi
   touch terminal-$TERMINAL.tmp
 
@@ -132,7 +173,7 @@ gifsicle --colors 256 -m \
 		--loopcount=forever \
 		-d0 "$BACKGROUND" \
 		$(for i in `seq -w 00000 $FRAME` ; do
-			echo "--position $(cat position-$i.tmp) -d$(cat sleep-$i.tmp) frame-$i.gif"
+			echo "--position ${POSITION_ARR[$i]} -d${SLEEP_ARR[$i]} frame-$i.gif"
 		done) \
 		--optimize > $FILEDST
 
